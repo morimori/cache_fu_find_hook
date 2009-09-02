@@ -1,0 +1,58 @@
+= cache_fu find hook 拡張
+
+cache_fu (旧 acts_as_cached) を拡張するプラグインです。
+
+find(id) や find_by_xxx(value) をフックして、get_cache が実行されるようにします。
+
+
+== 依存するライブラリ・プラグイン
+
+[rails plugin] cache_fu ... http://github.com/defunkt/cache_fu/tree/master
+
+
+== 設定
+
+このプラグインが cache_fu の後にロードされるように、config/environment.rb を修正します。
+
+  Rails::Initializer.run do |config|
+    ...
+    config.plugins = [:cache_fu, :cache_fu_find_hook, :all]
+    ...
+  end
+
+
+== 使い方
+
+モデル定義は cache_fu のまま、acts_as_cached で設定します。
+
+データ取得は、cache_fu の場合は Model.get_cache(id) で取得しますが、Model.find(id) としてもキャッシュが効くようになります。
+
+=== acts_as_cache に :find_by オプションを付けない場合
+
+  class User < ActiveRecord::Base
+    acts_as_cached
+  end
+
+  User.create
+  User.find 1  ## キャッシュミスするので、find してキャッシュに追加します
+  User.find 1  ## キャッシュに存在するのでキャッシュから取得します
+  User.find :first, :conditions => {:id => 1}  ## この呼び方ではフックしないので、常にデータベースから取得します
+
+
+=== acts_as_cached に :find_by オプションを付ける場合
+
+acts_as_cached で find_by オプションを設定した場合は、Model.find_by_xxx(value) を呼んだ時にキャッシュを使用します。
+
+この場合は Model.find(id) ではキャッシュされません。
+
+  class User < ActiveRecord::Base
+    acts_as_cached :find_by => 'employee_id'
+  end
+
+  User.create :employee_id => 127
+  User.find_by_employee_id 127  ## キャッシュミスするので、find してキャッシュに追加します
+  User.find_by_employee_id 127  ## キャッシュに存在するのでキャッシュから取得します
+  User.find :first, :conditions => {:employee_id => 1}  ## この呼び方ではフックしないので、常にデータベースから取得します
+
+
+Copyright (c) 2009 Takatoshi -morimori- MORIYAMA @ KRAY Inc., released under the MIT license
